@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Liquidity &amp; Sentiment — Market Regime Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js" defer></script>
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <div>
+        <h1>Liquidity &amp; Sentiment <span class="muted">· Market Regime</span></h1>
+        <p class="meta" id="meta-line">Loading…</p>
+      </div>
+      <nav class="jump" aria-label="Sections">
+        <a href="#regime">Regime</a><a href="#kpis">Key Indicators</a><a href="#liquidity">Liquidity</a>
+        <a href="#sentiment">Sentiment</a><a href="#financial">Fin. Conditions</a><a href="#relationship">Liq × Sent</a>
+        <a href="#history">History</a><a href="#details">Data</a><a href="#methodology">Methodology</a>
+      </nav>
+    </div>
+    <div class="toolbar">
+      <div class="wrap toolbar-row">
+        <div class="range-buttons" role="group" aria-label="Time range" id="range-buttons"></div>
+        <div class="custom-range">
+          <label>From <input type="date" id="range-start"></label>
+          <label>To <input type="date" id="range-end"></label>
+          <button type="button" id="range-apply" class="btn">Apply</button>
+          <button type="button" id="range-reset" class="btn ghost" title="Reset range and all chart zoom">Reset</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- LEVEL 1 — CURRENT MARKET REGIME -->
+    <section id="regime" class="regime card" aria-labelledby="regime-h">
+      <div class="regime-main">
+        <h2 id="regime-h" class="eyebrow">Market Regime <span class="muted" id="regime-date"></span></h2>
+        <div class="regime-label" id="regime-label">—</div>
+        <p class="regime-sub" id="regime-sub"></p>
+        <p class="confidence" id="regime-confidence"></p>
+      </div>
+      <div class="regime-components" id="regime-components"></div>
+    </section>
+
+    <!-- LEVEL 2 — KEY DRIVERS -->
+    <section id="kpis" aria-labelledby="kpi-h">
+      <h2 id="kpi-h" class="section-title">Key Indicators <span class="hint">Value · 3M change · trend · historical percentile</span></h2>
+      <div class="kpi-grid" id="kpi-grid"></div>
+    </section>
+
+    <!-- LEVEL 3 — HISTORICAL CONTEXT OVERVIEW -->
+    <section aria-labelledby="matrix-h" class="card">
+      <h2 id="matrix-h" class="section-title">Current vs Historical <span class="hint">Percentile is computed over each indicator's own available history — note the period</span></h2>
+      <div class="table-wrapper matrix-wrapper">
+        <table class="matrix" id="matrix"></table>
+      </div>
+    </section>
+
+    <!-- LIQUIDITY -->
+    <section id="liquidity" aria-labelledby="liq-h">
+      <h2 id="liq-h" class="section-title">Liquidity <span class="hint">Is liquidity expanding or contracting?</span></h2>
+      <div class="grid-2">
+        <article class="card chart-card">
+          <header class="chart-head"><h3>Net Liquidity <small>WALCL − TGA − RRP, USD bn</small></h3><span class="avail" data-avail="net_liq"></span></header>
+          <div class="chart" id="ch-netliq"></div>
+          <p class="interp" id="int-netliq"></p>
+        </article>
+        <article class="card chart-card">
+          <header class="chart-head">
+            <h3>What moved Net Liquidity <small id="comp-sub">weekly contribution, USD bn</small></h3>
+            <div class="seg" role="group" aria-label="Component view">
+              <button type="button" class="seg-btn active" data-comp="contrib">Contributions</button>
+              <button type="button" class="seg-btn" data-comp="levels">Levels</button>
+            </div>
+          </header>
+          <div class="chart" id="ch-components"></div>
+          <p class="interp" id="int-components"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- SENTIMENT -->
+    <section id="sentiment" aria-labelledby="sent-h">
+      <h2 id="sent-h" class="section-title">Sentiment <span class="hint">Are investors fearful, neutral or greedy?</span></h2>
+      <article class="card chart-card">
+        <header class="chart-head"><h3>Sentiment Composite <small>percentile 0–100 · VIX⁻¹ + AAII + Put/Call⁻¹, equal-weighted</small></h3><span class="avail" id="avail-comp"></span></header>
+        <div class="chart" id="ch-composite"></div>
+        <p class="interp" id="int-sentiment"></p>
+      </article>
+      <div class="grid-2 small-multiples">
+        <article class="card chart-card"><header class="chart-head"><h3>VIX <small>with 50th / 80th / 90th pct since 1990</small></h3><span class="avail" data-avail="vix"></span></header><div class="chart sm" id="ch-vix"></div></article>
+        <article class="card chart-card"><header class="chart-head"><h3>AAII Bull–Bear Spread <small>weekly survey, pp</small></h3><span class="avail" data-avail="aaii"></span></header><div class="chart sm" id="ch-aaii"></div></article>
+        <article class="card chart-card"><header class="chart-head"><h3>CBOE Total Put/Call <small>daily (faint) &amp; 10D mean</small></h3><span class="avail" data-avail="pc"></span></header><div class="chart sm" id="ch-pc"></div></article>
+        <article class="card chart-card"><header class="chart-head"><h3>CNN Fear &amp; Greed <small>cross-check · not in composite</small></h3><span class="avail" data-avail="cnn"></span></header><div class="chart sm" id="ch-cnn"></div></article>
+      </div>
+    </section>
+
+    <!-- FINANCIAL CONDITIONS & STRESS -->
+    <section id="financial" aria-labelledby="fc-h">
+      <h2 id="fc-h" class="section-title">Financial Conditions &amp; Market Stress <span class="hint">Is liquidity translating into easier conditions? Is there abnormal stress?</span></h2>
+      <div class="grid-2">
+        <article class="card chart-card"><header class="chart-head"><h3>Chicago Fed NFCI <small>0 = 1971+ average · below 0 = looser</small></h3><span class="avail" data-avail="nfci"></span></header><div class="chart sm" id="ch-nfci"></div></article>
+        <article class="card chart-card"><header class="chart-head"><h3>High-Yield OAS <small>%, ICE BofA</small></h3><span class="avail" data-avail="hy"></span></header><div class="chart sm" id="ch-hy"></div></article>
+      </div>
+      <p class="interp card-lite" id="int-financial"></p>
+      <div class="grid-2">
+        <article class="card chart-card"><header class="chart-head"><h3>Market Stress Percentile <small>mean of VIX pct &amp; HY OAS pct</small></h3><span class="avail" id="avail-stress"></span></header><div class="chart sm" id="ch-stress"></div></article>
+        <article class="card">
+          <h3 class="card-h">Stress Monitor</h3>
+          <div class="table-wrapper"><table class="stress-table" id="stress-table"></table></div>
+          <p class="interp" id="int-stress"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- LEVEL 4 — RELATIONSHIPS -->
+    <section id="relationship" aria-labelledby="rel-h">
+      <h2 id="rel-h" class="section-title">Liquidity × Sentiment <span class="hint">Weekly sampling · correlation ≠ causation</span></h2>
+      <div class="grid-2">
+        <article class="card chart-card">
+          <header class="chart-head">
+            <h3>Regime Quadrant <small id="quad-sub"></small></h3>
+            <div class="seg" role="group" aria-label="Quadrant X axis">
+              <button type="button" class="seg-btn active" data-quad="pct">Level (percentile)</button>
+              <button type="button" class="seg-btn" data-quad="z">Momentum (3M signal)</button>
+            </div>
+          </header>
+          <div class="chart tall" id="ch-quadrant"></div>
+        </article>
+        <article class="card chart-card">
+          <header class="chart-head"><h3>Rolling Correlation <small>weekly Δ Net Liquidity vs Δ Sentiment Composite</small></h3></header>
+          <div class="chart tall" id="ch-corr"></div>
+          <p class="interp" id="int-relationship"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- HISTORICAL CONTEXT -->
+    <section id="history" aria-labelledby="hist-h">
+      <h2 id="hist-h" class="section-title">Historical Context <span class="hint">Regime timeline &amp; data coverage</span></h2>
+      <article class="card chart-card">
+        <header class="chart-head"><h3>Regime Timeline <small>with S&amp;P 500 (log, context only)</small></h3></header>
+        <div class="chart xtall" id="ch-timeline"></div>
+        <div class="legend" id="regime-legend"></div>
+      </article>
+      <article class="card chart-card">
+        <header class="chart-head"><h3>Data Coverage <small>genuine observations per indicator (after removing upstream forward-fill)</small></h3></header>
+        <div class="chart" id="ch-coverage"></div>
+      </article>
+    </section>
+
+    <!-- LEVEL 5 — DETAILS -->
+    <section id="details" aria-labelledby="det-h" class="card">
+      <h2 id="det-h" class="section-title">Detailed Data <span class="hint">Blank = no observation on that date (no filling)</span></h2>
+      <div class="table-controls">
+        <label><input type="checkbox" id="tbl-follow" checked> Follow dashboard range</label>
+        <label>Regime <select id="tbl-regime"><option value="">All</option></select></label>
+        <label><input type="checkbox" id="tbl-liq"> Rows with liquidity data only</label>
+        <details class="col-picker"><summary>Columns</summary><div id="tbl-cols"></div></details>
+        <button type="button" class="btn ghost" id="tbl-export">Export CSV</button>
+        <span class="muted" id="tbl-count"></span>
+      </div>
+      <div class="table-wrapper data-wrapper"><table class="data-table" id="data-table"></table></div>
+      <div class="pager"><button type="button" class="btn ghost" id="pg-prev">‹ Prev</button><span id="pg-info"></span><button type="button" class="btn ghost" id="pg-next">Next ›</button></div>
+    </section>
+
+    <section id="methodology" aria-labelledby="meth-h" class="card">
+      <h2 id="meth-h" class="section-title">Methodology &amp; Data Dictionary</h2>
+      <div id="method-blocks"></div>
+      <details open><summary class="sum-h">Data Dictionary</summary><div class="table-wrapper"><table class="dict" id="dict"></table></div></details>
+      <details><summary class="sum-h">Data Audit (raw CSV)</summary><div id="audit"></div></details>
+      <details><summary class="sum-h">Columns intentionally not visualized</summary><ul id="hidden-cols"></ul></details>
+      <p class="disclaimer">Market-analysis tool, not a prediction engine. Nothing here is investment advice or a forecast of future prices, recessions or policy.</p>
+    </section>
+  </main>
+  <footer class="wrap foot muted" id="foot"></footer>
+</body>
+</html>
